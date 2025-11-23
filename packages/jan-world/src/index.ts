@@ -1,0 +1,59 @@
+import type { Storage, World } from '@workflow/world';
+import createPostgres from 'postgres';
+import type { JanWorldConfig } from './config.js';
+import { createClient, type Drizzle } from './drizzle/index.js';
+import { createQueue } from './queue.js';
+import {
+  createEventsStorage,
+  createHooksStorage,
+  createRunsStorage,
+  createStepsStorage,
+} from './storage.js';
+import { createStreamer } from './streamer.js';
+
+function createStorage(drizzle: Drizzle): Storage {
+  return {
+    runs: createRunsStorage(drizzle),
+    events: createEventsStorage(drizzle),
+    hooks: createHooksStorage(drizzle),
+    steps: createStepsStorage(drizzle),
+  };
+}
+
+export function createWorld(
+  config: JanWorldConfig = {
+    connectionString:
+      process.env.WORKFLOW_POSTGRES_URL ||
+      'postgres://world:world@localhost:5432/world',
+    gcpProjectId: process.env.GCP_PROJECT_ID || '',
+    gcpLocation: process.env.GCP_LOCATION || 'us-central1',
+    queuePrefix: process.env.WORKFLOW_QUEUE_PREFIX,
+    queueConcurrency:
+      parseInt(process.env.WORKFLOW_QUEUE_CONCURRENCY || '10', 10) || 10,
+  }
+): World & { start(): Promise<void> } {
+  if (!config.gcpProjectId) {
+    throw new Error(
+      'GCP_PROJECT_ID is required. Set it via config or environment variable.'
+    );
+  }
+
+  const postgres = createPostgres(config.connectionString);
+  const drizzle = createClient(postgres);
+  const queue = createQueue(config);
+  const storage = createStorage(drizzle);
+  const streamer = createStreamer(postgres, drizzle);
+
+  return {
+    ...storage,
+    ...streamer,
+    ...queue,
+    async start() {
+      await queue.start();
+    },
+  };
+}
+
+// Re-export schema for users who want to extend or inspect the database schema
+export type { JanWorldConfig } from './config.js';
+export * from './drizzle/schema.js';

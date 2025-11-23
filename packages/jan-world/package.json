@@ -1,0 +1,61 @@
+{
+  "name": "@workflow/jan-world",
+  "version": "0.0.1",
+  "description": "A World implementation using PostgreSQL for storage and Google Cloud Tasks for queue",
+  "type": "module",
+  "main": "dist/index.js",
+  "files": [
+    "dist",
+    "src/drizzle/migrations"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vercel/workflow.git",
+    "directory": "packages/jan-world"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./schema": {
+      "types": "./dist/drizzle/schema.d.ts",
+      "default": "./dist/drizzle/schema.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "tsc --build --clean && rm -rf dist",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@google-cloud/tasks": "6.2.1",
+    "@vercel/queue": "catalog:",
+    "@workflow/errors": "workspace:*",
+    "@workflow/world": "workspace:*",
+    "@workflow/world-local": "workspace:*",
+    "dotenv": "16.4.5",
+    "drizzle-orm": "0.44.7",
+    "postgres": "3.4.7",
+    "ulid": "3.0.1",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@testcontainers/postgresql": "11.7.1",
+    "@types/node": "catalog:",
+    "@workflow/errors": "workspace:*",
+    "@workflow/tsconfig": "workspace:*",
+    "@workflow/world-testing": "workspace:*",
+    "drizzle-kit": "0.31.6",
+    "vitest": "catalog:"
+  },
+  "keywords": [],
+  "author": "",
+  "packageManager": "pnpm@10.15.1"
+}
