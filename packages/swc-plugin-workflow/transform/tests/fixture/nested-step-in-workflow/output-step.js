@@ -11,6 +11,14 @@ var helpers$objectStep = async (x, y)=>{
     return x + y + 10;
 };
 export async function example(a, b) {
+    "use workflow";
+    const step = example$step;
+    // Arrow function with const
+    const arrowStep = example$arrowStep;
+    // Arrow function with let
+    let letArrowStep = example$letArrowStep;
+    // Arrow function with var
+    var varArrowStep = example$varArrowStep;
     // Object with step method
     const helpers = {
         objectStep: helpers$objectStep
