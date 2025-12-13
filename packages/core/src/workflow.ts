@@ -1,5 +1,5 @@
 import { runInContext } from 'node:vm';
-import { ERROR_SLUGS } from '@workflow/errors';
+import { ERROR_SLUGS, WorkflowRuntimeError } from '@workflow/errors';
 import { withResolvers } from '@workflow/utils';
 import { getPort } from '@workflow/utils/get-port';
 import type { Event, WorkflowRun } from '@workflow/world';
@@ -125,6 +125,43 @@ export async function runWorkflow(
       throw new vmGlobalThis.Error(
         `Global "fetch" is unavailable in workflow functions. Use the "fetch" step function from "workflow" to make HTTP requests.\n\nLearn more: https://useworkflow.dev/err/${ERROR_SLUGS.FETCH_IN_WORKFLOW_FUNCTION}`
       );
+    };
+
+    // Override timeout/interval functions to throw helpful errors
+    // These are not supported in workflow functions because they rely on
+    // asynchronous scheduling which breaks deterministic replay
+    const timeoutErrorMessage =
+      'Timeout functions like "setTimeout" and "setInterval" are not supported in workflow functions. Use the "sleep" function from "workflow" for time-based delays.';
+
+    (vmGlobalThis as any).setTimeout = () => {
+      throw new WorkflowRuntimeError(timeoutErrorMessage, {
+        slug: ERROR_SLUGS.TIMEOUT_FUNCTIONS_IN_WORKFLOW,
+      });
+    };
+    (vmGlobalThis as any).setInterval = () => {
+      throw new WorkflowRuntimeError(timeoutErrorMessage, {
+        slug: ERROR_SLUGS.TIMEOUT_FUNCTIONS_IN_WORKFLOW,
+      });
+    };
+    (vmGlobalThis as any).clearTimeout = () => {
+      throw new WorkflowRuntimeError(timeoutErrorMessage, {
+        slug: ERROR_SLUGS.TIMEOUT_FUNCTIONS_IN_WORKFLOW,
+      });
+    };
+    (vmGlobalThis as any).clearInterval = () => {
+      throw new WorkflowRuntimeError(timeoutErrorMessage, {
+        slug: ERROR_SLUGS.TIMEOUT_FUNCTIONS_IN_WORKFLOW,
+      });
+    };
+    (vmGlobalThis as any).setImmediate = () => {
+      throw new WorkflowRuntimeError(timeoutErrorMessage, {
+        slug: ERROR_SLUGS.TIMEOUT_FUNCTIONS_IN_WORKFLOW,
+      });
+    };
+    (vmGlobalThis as any).clearImmediate = () => {
+      throw new WorkflowRuntimeError(timeoutErrorMessage, {
+        slug: ERROR_SLUGS.TIMEOUT_FUNCTIONS_IN_WORKFLOW,
+      });
     };
 
     // `Request` and `Response` are special built-in classes that invoke steps
