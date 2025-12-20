@@ -124,7 +124,7 @@ export function WorkflowDetailPanel({
     loading,
   } = useWorkflowResourceData(
     env,
-    resource as 'run' | 'step' | 'hook',
+    resource as 'run' | 'step' | 'hook' | 'sleep',
     resourceId ?? '',
     { runId }
   );
