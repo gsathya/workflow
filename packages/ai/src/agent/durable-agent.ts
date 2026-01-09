@@ -9,6 +9,7 @@ import type {
 import {
   asSchema,
   type FinishReason,
+  generateId,
   type LanguageModelResponseMetadata,
   type LanguageModelUsage,
   type ModelMessage,
@@ -18,6 +19,7 @@ import {
   type StreamTextOnStepFinishCallback,
   type ToolChoice,
   type ToolSet,
+  type UIMessage,
   type UIMessageChunk,
 } from 'ai';
 import { convertToLanguageModelPrompt, standardizePrompt } from 'ai/internal';
@@ -336,9 +338,9 @@ export type StreamTextOnFinishCallback<
   readonly steps: StepResult<TTools>[];
 
   /**
-   * The final messages including all tool calls and results.
+   * The final messages including all tool calls and results in UIMessage format.
    */
-  readonly messages: ModelMessage[];
+  readonly messages: UIMessage[];
 
   /**
    * Context that is passed into tool execution.
@@ -554,9 +556,9 @@ export interface DurableAgentStreamResult<
   OUTPUT = never,
 > {
   /**
-   * The final messages including all tool calls and results.
+   * The final messages including all tool calls and results in UIMessage format.
    */
-  messages: ModelMessage[];
+  messages: UIMessage[];
 
   /**
    * Details for all steps.
@@ -568,6 +570,88 @@ export interface DurableAgentStreamResult<
    * Only available when `experimental_output` is specified.
    */
   experimental_output: OUTPUT;
+}
+
+/**
+ * Convert LanguageModelV2Prompt to UIMessage format.
+ * This is useful for persisting messages in a database.
+ */
+function convertToUIMessages(prompt: LanguageModelV2Prompt): UIMessage[] {
+  const messages: UIMessage[] = [];
+
+  for (const message of prompt) {
+    const id = generateId();
+
+    if (message.role === 'system') {
+      messages.push({
+        id,
+        role: 'system',
+        parts: [{ type: 'text', text: message.content }],
+      } as UIMessage);
+      continue;
+    }
+
+    if (message.role === 'user') {
+      const parts = Array.isArray(message.content)
+        ? message.content.map((part): any => {
+            if (part.type === 'text') {
+              return { type: 'text', text: part.text };
+            }
+            // For non-text parts, pass them through as-is
+            return part;
+          })
+        : [{ type: 'text', text: message.content }];
+
+      messages.push({
+        id,
+        role: 'user',
+        parts,
+      } as UIMessage);
+      continue;
+    }
+
+    if (message.role === 'assistant') {
+      const parts = message.content.map((part): any => {
+        if (part.type === 'text') {
+          return { type: 'text', text: part.text };
+        }
+        if (part.type === 'tool-call') {
+          return {
+            type: 'tool-call',
+            toolCallId: part.toolCallId,
+            toolName: part.toolName,
+            args: part.input,
+          };
+        }
+        return part;
+      });
+
+      messages.push({
+        id,
+        role: 'assistant',
+        parts,
+      } as UIMessage);
+      continue;
+    }
+
+    if (message.role === 'tool') {
+      const parts = message.content.map((part): any => ({
+        type: 'tool-result',
+        toolCallId: part.toolCallId,
+        toolName: part.toolName,
+        result: part.output.type === 'text' ? part.output.value : part.output,
+      }));
+
+      messages.push({
+        id,
+        role: 'assistant',
+        parts,
+      } as UIMessage);
+      continue;
+    }
+  }
+
+  return messages;
 }
 
 /**
@@ -705,7 +789,15 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
         await options.onAbort({ steps });
       }
       return {
-        messages: options.messages as unknown as ModelMessage[],
+        messages: convertToUIMessages(
+          await convertToLanguageModelPrompt({
+            prompt: await standardizePrompt({
+              messages: options.messages,
+            }),
+            supportedUrls: {},
+            download: options.experimental_download,
+          })
+        ),
         steps,
         experimental_output: undefined as OUTPUT,
       };
@@ -813,9 +905,18 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
       await closeStream(options.writable, preventClose, sendFinish);
     }
 
-    // Use the final messages from the iterator, or fall back to original messages
-    const messages = (finalMessages ??
-      options.messages) as unknown as ModelMessage[];
+    // Use the final messages from the iterator, or convert original messages to UIMessage format
+    const messages = finalMessages
+      ? convertToUIMessages(finalMessages)
+      : convertToUIMessages(
+          await convertToLanguageModelPrompt({
+            prompt: await standardizePrompt({
+              messages: options.messages,
+            }),
+            supportedUrls: {},
+            download: options.experimental_download,
+          })
+        );
 
     // Parse structured output if experimental_output is specified
     let experimentalOutput: OUTPUT = undefined as OUTPUT;
@@ -846,7 +947,7 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
     if (options.onFinish && !wasAborted) {
       await options.onFinish({
         steps,
-        messages: messages as ModelMessage[],
+        messages,
         experimental_context: experimentalContext,
         experimental_output: experimentalOutput,
       });
@@ -858,7 +959,7 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
     }
 
     return {
-      messages: messages as ModelMessage[],
+      messages,
       steps,
       experimental_output: experimentalOutput,
     };
@@ -998,7 +1099,7 @@ async function executeTool(
         toolName: toolCall.toolName,
         output: {
           type: 'error-text',
-          value: error.message,
+          value: (error as Error).message,
         },
       };
     }
