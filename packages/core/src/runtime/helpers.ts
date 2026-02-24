@@ -236,49 +236,6 @@ export async function getAllWorkflowRunEvents(runId: string): Promise<Event[]> {
 }
 
 /**
- * CORS headers for health check responses.
- * Allows the observability UI to check endpoint health from a different origin.
- */
-const HEALTH_CHECK_CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS, GET, HEAD',
-  'Access-Control-Allow-Headers': 'Content-Type',
-};
-
-/**
- * Wraps a request/response handler and adds a health check "mode"
- * based on the presence of a `__health` query parameter.
- */
-export function withHealthCheck(
-  handler: (req: Request) => Promise<Response>
-): (req: Request) => Promise<Response> {
-  return async (req: Request) => {
-    const url = new URL(req.url);
-    const isHealthCheck = url.searchParams.has('__health');
-    if (isHealthCheck) {
-      // Handle CORS preflight for health check
-      if (req.method === 'OPTIONS') {
-        return new Response(null, {
-          status: 204,
-          headers: HEALTH_CHECK_CORS_HEADERS,
-        });
-      }
-      return new Response(
-        `Workflow DevKit "${url.pathname}" endpoint is healthy`,
-        {
-          status: 200,
-          headers: {
-            'Content-Type': 'text/plain',
-            ...HEALTH_CHECK_CORS_HEADERS,
-          },
-        }
-      );
-    }
-    return await handler(req);
-  };
-}
-
-/**
  * Queues a message to the specified queue with tracing.
  */
 export async function queueMessage(

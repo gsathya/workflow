@@ -18,7 +18,6 @@ import {
   getQueueOverhead,
   handleHealthCheckMessage,
   parseHealthCheckPayload,
-  withHealthCheck,
 } from './runtime/helpers.js';
 import { handleSuspension } from './runtime/suspension-handler.js';
 import { getWorld, getWorldHandlers } from './runtime/world.js';
@@ -430,7 +429,7 @@ export function workflowEntrypoint(
     }
   );
 
-  return withHealthCheck(handler);
+  return handler;
 }
 
 // this is a no-op placeholder as the client is

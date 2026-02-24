@@ -30,7 +30,6 @@ import {
   handleHealthCheckMessage,
   parseHealthCheckPayload,
   queueMessage,
-  withHealthCheck,
 } from './helpers.js';
 import { getWorld, getWorldHandlers } from './world.js';
 
@@ -449,5 +448,4 @@ const stepHandler = getWorldHandlers().createQueueHandler(
  * appropriate step function. We may eventually want to create different bundles
  * for each step, this is temporary.
  */
-export const stepEntrypoint: (req: Request) => Promise<Response> =
-  /* @__PURE__ */ withHealthCheck(stepHandler);
+export const stepEntrypoint: (req: Request) => Promise<Response> = stepHandler;

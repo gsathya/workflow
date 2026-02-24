@@ -1076,53 +1076,6 @@ describe('e2e', () => {
   );
 
   test(
-    'health check endpoint (HTTP) - workflow and step endpoints respond to __health query parameter',
-    { timeout: 30_000 },
-    async () => {
-      // NOTE: This tests the HTTP-based health check using the `?__health` query parameter.
-      // This approach requires direct HTTP access and works when:
-      // - Running locally (for port detection)
-      // - Vercel Deployment Protection bypass headers are available
-      //
-      // For production use on Vercel with Deployment Protection enabled, use the
-      // queue-based `healthCheck(world, endpoint, options)` function instead, which
-      // bypasses protection by sending messages through the Queue infrastructure.
-
-      // Test the flow endpoint health check
-      const flowHealthUrl = new URL(
-        '/.well-known/workflow/v1/flow?__health',
-        deploymentUrl
-      );
-      const flowRes = await fetch(flowHealthUrl, {
-        method: 'POST',
-        headers: getProtectionBypassHeaders(),
-      });
-      expect(flowRes.status).toBe(200);
-      expect(flowRes.headers.get('Content-Type')).toBe('text/plain');
-      const flowBody = await flowRes.text();
-      expect(flowBody).toBe(
-        'Workflow DevKit "/.well-known/workflow/v1/flow" endpoint is healthy'
-      );
-
-      // Test the step endpoint health check
-      const stepHealthUrl = new URL(
-        '/.well-known/workflow/v1/step?__health',
-        deploymentUrl
-      );
-      const stepRes = await fetch(stepHealthUrl, {
-        method: 'POST',
-        headers: getProtectionBypassHeaders(),
-      });
-      expect(stepRes.status).toBe(200);
-      expect(stepRes.headers.get('Content-Type')).toBe('text/plain');
-      const stepBody = await stepRes.text();
-      expect(stepBody).toBe(
-        'Workflow DevKit "/.well-known/workflow/v1/step" endpoint is healthy'
-      );
-    }
-  );
-
-  test(
     'health check (queue-based) - workflow and step endpoints respond to health check messages',
     { timeout: 60_000 },
     async () => {
