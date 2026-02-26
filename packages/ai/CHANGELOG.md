@@ -1,5 +1,14 @@
 # @workflow/ai
 
+## 4.0.1-beta.53
+
+### Patch Changes
+
+- [#1023](https://github.com/vercel/workflow/pull/1023) [`c8c98fe`](https://github.com/vercel/workflow/commit/c8c98fe463f4c8622988a2a9ff06a0234cb46a16) Thanks [@rovo89](https://github.com/rovo89)! - Pass optional request metadata through `WorkflowChatTransport`
+
+- Updated dependencies []:
+  - workflow@4.1.0-beta.61
+
 ## 4.0.1-beta.52
 
 ### Patch Changes
