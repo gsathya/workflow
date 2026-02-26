@@ -1,5 +1,13 @@
 # @workflow/world-vercel
 
+## 4.1.0-beta.35
+
+### Patch Changes
+
+- [#1174](https://github.com/vercel/workflow/pull/1174) [`e1a2f47`](https://github.com/vercel/workflow/commit/e1a2f475aa3258ee9e36e0694f73dbbe72b49fbe) Thanks [@TooTallNate](https://github.com/TooTallNate)! - Handle `{ key: null }` response from the run-key API endpoint, returning `undefined` to signal encryption is disabled for that workflow run
+
+- [#1183](https://github.com/vercel/workflow/pull/1183) [`c614456`](https://github.com/vercel/workflow/commit/c6144564eab0168bbb00350839c04f5f009dcd8e) Thanks [@TooTallNate](https://github.com/TooTallNate)! - Pass `teamId` to the run-key API endpoint for team-scoped encryption key retrieval
+
 ## 4.1.0-beta.34
 
 ### Patch Changes
